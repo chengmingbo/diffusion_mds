@@ -16,22 +16,6 @@ def add_broadview(dm, n_neighbors=8, random_state=2023, prog='sfdp', verbose=Fal
     use knn to add edges
     next apply graphy layout to display all nodes
     """
-    #neigh = NearestNeighbors(n_neighbors=max(n_neighbors, 100))
-    #neigh.fit(dm)
-    #neighbors = neigh.kneighbors(dm)[1]
-    #G = nx.Graph()
-    #G.add_nodes_from(range(dm.shape[0]))
-    #for n_neighbors_choose in range(n_neighbors, 100):
-    #    edges = [(neighbors[i,0], j) for i in range(n_neighbors_choose) for j in neighbors[i, 1:]]
-    #    G.add_edges_from(edges)
-    #    #print(n_neighbors_choose, len(G.edges))
-    #    if nx.is_connected(G):
-    #        break
-
-    #if not nx.is_connected(G):
-    #    print("warning: failed to add broadview, use the original embedding")
-    #    return dm
-
     def ti(a,b):
         if a < b:
             return (a,b)
@@ -153,7 +137,6 @@ def diffusion_mds(adata:AnnData,
     dm = adata.obsm['X_'+basis]
     if dims is None:
         dims = range(dm.shape[1])
-
     mds_dm = diffusion_mds_embedding(dm=dm,
                                      dims=dims,
                                      diffusion_components=diffusion_components,

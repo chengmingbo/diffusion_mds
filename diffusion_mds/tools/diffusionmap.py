@@ -31,7 +31,6 @@ def affinity(R, k=7, sigma=None, log=False, normalize=False):
     logW = -np.power(np.divide(R, S), 2)
 
     if normalize:
-        #sweep(logW,1,apply(logW,1,logsumexp)) #wrong, need to divide, FUN='/'
         denominator = [logsumexp(logW[i,:]) for i in range(logW.shape[0])]
         logW = np.divide(logW.T, denominator).T
     if log:
