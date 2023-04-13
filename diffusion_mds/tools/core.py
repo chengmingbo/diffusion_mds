@@ -1,6 +1,6 @@
 import numpy as np
 import networkx as nx
-
+from datetime import datetime
 from sklearn.neighbors import NearestNeighbors
 from typing import List
 from scipy.spatial import distance_matrix, Delaunay, distance
@@ -38,7 +38,7 @@ def add_broadview(dm, n_neighbors=8, random_state=2023, prog='sfdp', verbose=Fal
         return(b,a)
 
     if verbose:
-        print('Triangulating graph...')
+        print(datetime.now(),'Triangulating graph...')
     tri = Delaunay(dm)
     tri_edges =[[ti(a,b),ti(a,c),ti(b,c)] for a,b,c in tri.simplices]
     tri_edges = list(set([item for sublist in tri_edges for item in sublist])) # flatten
@@ -57,13 +57,14 @@ def add_broadview(dm, n_neighbors=8, random_state=2023, prog='sfdp', verbose=Fal
             trunc_quantile += 0.05
             threshold = np.quantile(edges_distance, trunc_quantile) * trunc_times
         if trunc_quantile >= 1:
-            print("warning: failed to add connected Delaunay, use the original embedding")
+            print(datetime.now(),"warning: failed to add connected Delaunay, use the original embedding")
+            return dm
 
     G = nx.Graph()
     G.add_nodes_from(range(dm.shape[0]))
     G.add_edges_from(keep_edges)
     if verbose:
-        print(f'Running graph layout {prog}...')
+        print(datetime.now(),f'Running graph layout {prog}...')
     layouts = nx.nx_pydot.graphviz_layout(G, prog=prog)
     dm = np.array([layouts[i] for i in range(dm.shape[0])])
 
@@ -88,20 +89,21 @@ def diffusion_mds_embedding(dm:np.ndarray,
     add gaussian noise to alleviate overlapping
     broadview: if True, use broadview to furture alleviate overlapping
     """
+    np.random.seed(random_state)
     if dims is None:
         dims = range(dm.shape[1])
 
     if verbose:
-        print('Calculating distances...')
+        print(datetime.now(),'Calculating distances...')
     R = distance_matrix(dm[:, dims], dm[:, dims])
 
     ##1.  run diffusion maps
     if verbose:
-        print('Running diffusion maps...')
+        print(datetime.now(),'Running diffusion maps...')
     d = diffusionMaps(R,k=affinity_k,sigma=affinity_sigma, eig_k=diffusion_components+1, verbose=verbose)
 
     if verbose:
-        print('Running MDS...')
+        print(datetime.now(),'Running MDS...')
     ##2. run mds on diffusion components to retain the distances
     if landmark_mds >= 1:
         mds  = MDS(n_components=2, random_state=random_state)
@@ -112,7 +114,7 @@ def diffusion_mds_embedding(dm:np.ndarray,
 
     ##3. add guassian noise to the mds embedding
     if verbose:
-        print('Adding noise...')
+        print(datetime.now(),'Adding noise...')
     rg1 = np.max(mds_dm[:, 0]) - np.min(mds_dm[:, 0])
     rg2 = np.max(mds_dm[:, 1]) - np.min(mds_dm[:, 1])
     m1 = np.mean(mds_dm[:, 0])
@@ -126,7 +128,7 @@ def diffusion_mds_embedding(dm:np.ndarray,
 
     if broadview:
         if verbose:
-            print('Adding broadview...')
+            print(datetime.now(),'Adding broadview...')
         mds_dm = add_broadview(mds_dm, n_neighbors=broadview_k, random_state=random_state, verbose=verbose)
 
     return mds_dm
