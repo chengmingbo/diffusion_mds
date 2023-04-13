@@ -1,33 +1,70 @@
 import numpy as np
 import networkx as nx
+
 from sklearn.neighbors import NearestNeighbors
 from typing import List
-from scipy.spatial import distance_matrix
+from scipy.spatial import distance_matrix, Delaunay, distance
 from sklearn.manifold import MDS
 from anndata import AnnData
+
 from .diffusionmap import diffusionMaps
 from .lmds import LMDS
 
-def add_broadview(dm, n_neighbors=8, random_state=2023):
+def add_broadview(dm, n_neighbors=8, random_state=2023, prog='sfdp', verbose=False):
 
     """
     use knn to add edges
     next apply graphy layout to display all nodes
     """
-    neigh = NearestNeighbors(n_neighbors=max(n_neighbors, 30))
-    neigh.fit(dm)
-    neighbors = neigh.kneighbors(dm)[1]
-    for n_neighbors_choose in range(n_neighbors, 30):
-        edges = [(neighbors[i,0], j) for i in range(n_neighbors_choose) for j in neighbors[i, 1:]]
-        G = nx.Graph()
-        G.add_edges_from(edges)
-        if nx.is_connected(G):
-            break
+    #neigh = NearestNeighbors(n_neighbors=max(n_neighbors, 100))
+    #neigh.fit(dm)
+    #neighbors = neigh.kneighbors(dm)[1]
+    #G = nx.Graph()
+    #G.add_nodes_from(range(dm.shape[0]))
+    #for n_neighbors_choose in range(n_neighbors, 100):
+    #    edges = [(neighbors[i,0], j) for i in range(n_neighbors_choose) for j in neighbors[i, 1:]]
+    #    G.add_edges_from(edges)
+    #    #print(n_neighbors_choose, len(G.edges))
+    #    if nx.is_connected(G):
+    #        break
 
-    if not nx.is_connected(G):
-        print("warning: failed to add broadview, use the original embedding")
-        return dm
-    layouts = nx.nx_pydot.graphviz_layout(G, prog='sfdp')
+    #if not nx.is_connected(G):
+    #    print("warning: failed to add broadview, use the original embedding")
+    #    return dm
+
+    def ti(a,b):
+        if a < b:
+            return (a,b)
+        return(b,a)
+
+    if verbose:
+        print('Triangulating graph...')
+    tri = Delaunay(dm)
+    tri_edges =[[ti(a,b),ti(a,c),ti(b,c)] for a,b,c in tri.simplices]
+    tri_edges = list(set([item for sublist in tri_edges for item in sublist])) # flatten
+    edges_distance = [distance.euclidean(tuple(dm[a]),tuple(dm[b])) for (a,b) in tri_edges]
+    trunc_quantile=0.6
+    trunc_times=3
+    while True: ## only connected graph approved
+        threshold = np.quantile(edges_distance, trunc_quantile) * trunc_times
+        keep_edges = [tri_edges[i] for i in range(len(tri_edges)) if edges_distance[i] < threshold]
+        tmpG = nx.Graph()
+        tmpG.add_nodes_from(range(dm.shape[0]))
+        tmpG.add_edges_from(keep_edges)
+        if nx.is_connected(tmpG):
+            break
+        else:
+            trunc_quantile += 0.05
+            threshold = np.quantile(edges_distance, trunc_quantile) * trunc_times
+        if trunc_quantile >= 1:
+            print("warning: failed to add connected Delaunay, use the original embedding")
+
+    G = nx.Graph()
+    G.add_nodes_from(range(dm.shape[0]))
+    G.add_edges_from(keep_edges)
+    if verbose:
+        print(f'Running graph layout {prog}...')
+    layouts = nx.nx_pydot.graphviz_layout(G, prog=prog)
     dm = np.array([layouts[i] for i in range(dm.shape[0])])
 
     return dm
@@ -66,9 +103,6 @@ def diffusion_mds_embedding(dm:np.ndarray,
     if verbose:
         print('Running MDS...')
     ##2. run mds on diffusion components to retain the distances
-    #slow version
-    #mds  = MDS(n_components=2, random_state=random_state)
-    #mds_dm = mds.fit_transform(d['psi'][:, 1:])
     if landmark_mds >= 1:
         mds  = MDS(n_components=2, random_state=random_state)
         mds_dm = mds.fit_transform(d['psi'][:, 1:])
@@ -93,7 +127,7 @@ def diffusion_mds_embedding(dm:np.ndarray,
     if broadview:
         if verbose:
             print('Adding broadview...')
-        mds_dm = add_broadview(mds_dm, n_neighbors=broadview_k, random_state=random_state)
+        mds_dm = add_broadview(mds_dm, n_neighbors=broadview_k, random_state=random_state, verbose=verbose)
 
     return mds_dm
 

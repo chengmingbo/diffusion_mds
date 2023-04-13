@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='diffusion_mds',
-    version='0.1.2',
+    version='0.1.0',
     description="extract information from diffusion components",
     url='https://github.com/CostaLab/diffusion_mds',
     author='Mingbo Cheng',
