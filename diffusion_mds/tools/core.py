@@ -10,7 +10,7 @@ from anndata import AnnData
 from .diffusionmap import diffusionMaps
 from .lmds import LMDS
 
-def add_broadview(dm, n_neighbors=8, random_state=2023, prog='sfdp', verbose=False):
+def stretching(dm, n_neighbors=8, random_state=2023, prog='sfdp', verbose=False):
 
     """
     use knn to add edges
@@ -63,15 +63,14 @@ def diffusion_mds_embedding(dm:np.ndarray,
                   random_state=2023,
                   noise_sigma_ratio=0.01,
                   landmark_mds= 0.1,
-                  broadview = False,
-                  broadview_k = 8,
+                  stretch = False,
                   verbose=False,
                   ):
 
     """
     Diffusion MDS embedding
     add gaussian noise to alleviate overlapping
-    broadview: if True, use broadview to furture alleviate overlapping
+    stretch: if True, use stretch to furture alleviate overlapping
     """
     np.random.seed(random_state)
     if dims is None:
@@ -110,10 +109,10 @@ def diffusion_mds_embedding(dm:np.ndarray,
     mds_dm[:, 0] += X_noise
     mds_dm[:, 1] += Y_noise
 
-    if broadview:
+    if stretch:
         if verbose:
-            print(datetime.now(),'Adding broadview...')
-        mds_dm = add_broadview(mds_dm, n_neighbors=broadview_k, random_state=random_state, verbose=verbose)
+            print(datetime.now(),'Adding stretch...')
+        mds_dm = stretching(mds_dm, random_state=random_state, verbose=verbose)
 
     return mds_dm
 
@@ -127,8 +126,7 @@ def diffusion_mds(adata:AnnData,
                   random_state=2023,
                   noise_sigma_ratio=0.01,
                   landmark_mds = 0.1,
-                  broadview = False,
-                  broadview_k = 8,
+                  stretch = False,
                   verbose=False,
                   copy = False):
 
@@ -145,8 +143,7 @@ def diffusion_mds(adata:AnnData,
                                      random_state=random_state,
                                      noise_sigma_ratio=noise_sigma_ratio,
                                      landmark_mds=landmark_mds,
-                                     broadview=broadview,
-                                     broadview_k=broadview_k,
+                                     stretch=stretch,
                                      verbose=verbose,
                                      )
 
