@@ -39,6 +39,10 @@ def stretching(dm, n_neighbors=8, random_state=2023, prog='sfdp', verbose=False)
             break
         else:
             trunc_quantile += 0.05
+            if trunc_quantile>= 1:
+                print(datetime.now(),"warning: failed to add connected Delaunay, use the original embedding")
+                return dm
+
             threshold = np.quantile(edges_distance, trunc_quantile) * trunc_times
         if trunc_quantile >= 1:
             print(datetime.now(),"warning: failed to add connected Delaunay, use the original embedding")
@@ -64,6 +68,7 @@ def diffusion_mds_embedding(dm:np.ndarray,
                   noise_sigma_ratio=0.01,
                   landmark_mds= 0.1,
                   stretch = False,
+                  prog='sfdp',
                   verbose=False,
                   ):
 
@@ -112,7 +117,7 @@ def diffusion_mds_embedding(dm:np.ndarray,
     if stretch:
         if verbose:
             print(datetime.now(),'Adding stretch...')
-        mds_dm = stretching(mds_dm, random_state=random_state, verbose=verbose)
+        mds_dm = stretching(mds_dm, prog=prog,random_state=random_state, verbose=verbose)
 
     return mds_dm
 
@@ -127,6 +132,7 @@ def diffusion_mds(adata:AnnData,
                   noise_sigma_ratio=0.01,
                   landmark_mds = 0.1,
                   stretch = False,
+                  prog = 'sfdp',
                   verbose=False,
                   copy = False):
 
@@ -144,6 +150,7 @@ def diffusion_mds(adata:AnnData,
                                      noise_sigma_ratio=noise_sigma_ratio,
                                      landmark_mds=landmark_mds,
                                      stretch=stretch,
+                                     prog=prog,
                                      verbose=verbose,
                                      )
 
